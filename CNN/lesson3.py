@@ -5,9 +5,10 @@ import matplotlib.pyplot as plt
 
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Conv2D, MaxPool2D, Flatten
+from tensorflow.keras.layers import Dense, Conv2D, MaxPool2D, Flatten, Dropout
 
 from tensorflow.keras.callbacks import EarlyStopping
+# from tensorflow.python.layers.core import Dense
 
 data_dir = "../cell_images"
 
@@ -39,3 +40,39 @@ image_gen = ImageDataGenerator(rotation_range=20, width_shift_range=0.1, height_
                                shear_range=0.1, zoom_range=0.1, horizontal_flip=True, fill_mode="nearest")
 image_gen.flow_from_directory(train_path)
 image_gen.flow_from_directory(test_path)
+
+model = Sequential()
+model.add(Conv2D(filters=32, kernel_size=(3, 3), input_shape=image_shape, activation="relu"))
+model.add(MaxPool2D(pool_size=(2, 2)))
+
+model.add(Conv2D(filters=64, kernel_size=(3, 3), input_shape=image_shape, activation="relu"))
+model.add(MaxPool2D(pool_size=(2, 2)))
+
+model.add(Conv2D(filters=64, kernel_size=(3, 3), input_shape=image_shape, activation="relu"))
+model.add(MaxPool2D(pool_size=(2, 2)))
+
+model.add(Flatten())
+
+model.add(Dense(128, activation="relu"))
+model.add(Dropout(0.5))
+
+model.add(Dense(1, activation="sigmoid"))
+
+model.compile(loss="binary_crossentropy", optimizer="adam", metrics=["accuracy"])
+
+early_stop = EarlyStopping(monitor="val_loss", patience=2)
+batch_size = 16
+
+train_image_gen = image_gen.flow_from_directory(train_path, target_size=image_shape[:2], color_mode="rgb",
+                                                batch_size=batch_size, class_mode="binary")
+test_image_gen = image_gen.flow_from_directory(test_path, target_size=image_shape[:2], color_mode="rgb",
+                                                batch_size=batch_size, class_mode="binary", shuffle=False)
+
+result = model.fit_generator(train_image_gen, epochs=20, validation_data=test_image_gen, callbacks=[early_stop])
+
+# if validation loss gets up and training loss downs we are over fitting
+losses = pd.DataFrame(model.history.history)
+losses.plot()
+plt.show()
+
+model.save('my_malaria_model.h5')
