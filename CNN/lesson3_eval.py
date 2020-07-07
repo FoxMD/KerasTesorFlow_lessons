@@ -67,7 +67,7 @@ train_image_gen = image_gen.flow_from_directory(train_path, target_size=image_sh
                                                 batch_size=batch_size, class_mode="binary")
 test_image_gen = image_gen.flow_from_directory(test_path, target_size=image_shape[:2], color_mode="rgb",
                                                 batch_size=batch_size, class_mode="binary", shuffle=False)
-model = keras.models.load_model('malaria')
+model = keras.models.load_model('my_malaria_model.h5')
 pred = model.predict_generator(test_image_gen)
 predictions = pred > 0.5
 
